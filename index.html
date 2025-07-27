@@ -29,6 +29,14 @@
         const messages = document.getElementById('messages');
 
         let username = '';
+        let notificationPermission = 'default'; // To store notification permission status
+
+        // Request notification permission
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                notificationPermission = permission;
+            });
+        }
 
         while (username === '' || username === null) {
             username = prompt('Please enter your username:');
@@ -51,6 +59,28 @@
             window.scrollTo(0, document.body.scrollHeight);
         }
 
+        function showNotification(data) {
+            if (notificationPermission === 'granted' && document.hidden) {
+                const notificationTitle = `New message from ${data.username}`;
+                const notificationOptions = {
+                    body: data.message,
+                    icon: 'path/to/your/chat-icon.png' // Optional: add an icon for the notification
+                };
+                const notification = new Notification(notificationTitle, notificationOptions);
+
+                // Optional: Close notification after a few seconds
+                setTimeout(() => {
+                    notification.close();
+                }, 5000);
+
+                // Optional: Focus the tab when notification is clicked
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+            }
+        }
+
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             if (input.value) {
@@ -62,6 +92,10 @@
         // Listener for new individual chat messages
         socket.on('chat message', (data) => {
             displayMessage(data);
+            // Show notification if it's not your own message and the tab is not focused
+            if (data.username !== username) { // Only show notification for messages from others
+                showNotification(data);
+            }
         });
 
         // Listener for chat history when a new user connects
